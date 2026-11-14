@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../controllers/auth_controller.dart';
+import 'home_page.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({Key? key}) : super(key: key);
@@ -21,7 +22,7 @@ class _AuthPageState extends State<AuthPage> {
   final TextEditingController _regPasswordController = TextEditingController();
   final TextEditingController _regConfPasswordController = TextEditingController();
 
-  void _handleLogin() async {
+void _handleLogin() async {
     String username = _loginUsernameController.text.trim();
     String password = _loginPasswordController.text.trim();
 
@@ -32,12 +33,23 @@ class _AuthPageState extends State<AuthPage> {
 
     setState(() => _isLoading = true);
     final res = await _authController.login(username, password);
+    
+    // Cek apakah widget masih aktif di layar
+    if (!mounted) return;
     setState(() => _isLoading = false);
 
     if (res['success']) {
       _showSnackBar('Login Berhasil! Selamat datang ${res['user'].namaLengkap}');
+
+      // Pindah ke HomePage dan hapus history AuthPage
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HomePage(user: res['user']),
+        ),
+      );
     } else {
-      _showSnackBar(res['message']);
+      _showSnackBar(res['message'] ?? 'Login gagal!');
     }
   }
 
@@ -76,24 +88,49 @@ class _AuthPageState extends State<AuthPage> {
             child: Column(
               children: [
                 const SizedBox(height: 20),
+
+                // 1. Judul Utama Aplikasi (Paling Atas) - Selalu "FinFlow"
                 Text(
-                  _isLoginTab ? 'Login' : 'Register',
-                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  'FinFlow',
+                  style: const TextStyle(
+                    fontSize: 32, 
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
                 ),
+
                 const SizedBox(height: 20),
+
+                // 2. Navigasi Tab (Login / Register) di Bawahnya
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    TextButton(
-                      onPressed: () => setState(() => _isLoginTab = true),
-                      child: Text('Login', style: TextStyle(fontWeight: _isLoginTab ? FontWeight.bold : FontWeight.normal)),
+                    GestureDetector(
+                      onTap: () => setState(() => _isLoginTab = true),
+                      child: Text(
+                        'Login',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: _isLoginTab ? FontWeight.bold : FontWeight.normal,
+                          color: _isLoginTab ? Colors.deepPurple : Colors.grey,
+                        ),
+                      ),
                     ),
-                    TextButton(
-                      onPressed: () => setState(() => _isLoginTab = false),
-                      child: Text('Register', style: TextStyle(fontWeight: !_isLoginTab ? FontWeight.bold : FontWeight.normal)),
+                    const SizedBox(width: 30),
+                    GestureDetector(
+                      onTap: () => setState(() => _isLoginTab = false),
+                      child: Text(
+                        'Register',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: !_isLoginTab ? FontWeight.bold : FontWeight.normal,
+                          color: !_isLoginTab ? Colors.deepPurple : Colors.grey,
+                        ),
+                      ),
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 20),
                 _isLoginTab ? _buildLoginForm() : _buildRegisterForm(),
               ],
