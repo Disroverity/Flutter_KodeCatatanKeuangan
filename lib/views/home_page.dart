@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import '../models/user.dart';
+import 'catatan_page.dart';
+import '../controllers/catatan_controller.dart';
 
 class HomePage extends StatefulWidget {
   final User? user;
 
-  const HomePage({Key? key, this.user}) : super(key: key);
+  const HomePage({super.key, this.user});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -14,30 +16,39 @@ class _HomePageState extends State<HomePage> {
   int _currentIndex = 2; // Indeks 2 = Beranda (Aktif)
   bool _isSaldoHidden = false;
 
-  // List transaksi dummy
-  final List<Map<String, dynamic>> _transactions = [
-    {
-      'judul': 'Makan Siang',
-      'jenis': 'Pengeluaran',
-      'nominal': 50000,
-      'tanggal': '10 Okt 2026',
-      'icon': Icons.local_cafe_outlined,
-    },
-    {
-      'judul': 'Cair',
-      'jenis': 'Pemasukan',
-      'nominal': 1000000,
-      'tanggal': '10 Okt 2026',
-      'icon': Icons.attach_money,
-    },
-    {
-      'judul': 'Transportasi',
-      'jenis': 'Pengeluaran',
-      'nominal': 20000,
-      'tanggal': '9 Okt 2026',
-      'icon': Icons.directions_car_outlined,
-    },
-  ];
+  // List transaksi dikosongkan agar awalnya muncul Empty State
+  final List _transactions = [];
+
+  // --- TARUH DI SINI (TEPAT DI BAWAH _transactions) ---
+  final CatatanController _catatanController = CatatanController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHomeData();
+  }
+
+  Future<void> _loadHomeData() async {
+    final userId = widget.user?.userId.toString() ?? '1';
+    final data = await _catatanController.fetchTransactions(userId);
+    if (mounted) {
+      setState(() {
+        _transactions.clear();
+        for (var tx in data) {
+          final tgl = tx['tanggal'] as DateTime;
+          _transactions.add({
+            'judul': tx['judul'],
+            'jenis': tx['jenis'],
+            'nominal': (tx['nominal'] as double).toInt(),
+            'tanggal': '${tgl.day}/${tgl.month}/${tgl.year}',
+            'icon': tx['jenis'] == 'Pemasukan'
+                ? Icons.account_balance_wallet_outlined
+                : Icons.receipt_long_outlined,
+          });
+        }
+      });
+    }
+  }
 
   int get _totalPemasukan {
     return _transactions
@@ -57,66 +68,118 @@ class _HomePageState extends State<HomePage> {
     return 'Rp. ${number.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}';
   }
 
+  // Fungsi pindah ke tab Catatan Keuangan (indeks 0)
+  void _bukaHalamanCatatan() {
+    setState(() {
+      _currentIndex = 0;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    bool hasTransactions = _transactions.isNotEmpty;
-
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'FinFlow',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none, color: Colors.black),
-            onPressed: () {},
-          ),
-        ],
-      ),
+      backgroundColor: AppColors.creamBackground,
+      // AppBar utama hanya ditampilkan saat di tab Beranda (index 2)
+      // karena CatatanKeuanganPage sudah memiliki AppBar sendiri
+      appBar: _currentIndex == 2
+          ? AppBar(
+              backgroundColor: AppColors.creamBackground,
+              elevation: 0,
+              title: const Text(
+                'FinFlow',
+                style: TextStyle(
+                  color: AppColors.textDark,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
+                ),
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(
+                    Icons.notifications_none_rounded,
+                    color: AppColors.textDark,
+                  ),
+                  onPressed: () {},
+                ),
+              ],
+            )
+          : null,
       body: SafeArea(
-        child: hasTransactions ? _buildPopulatedState() : _buildEmptyState(),
+        child: _buildBodyContent(),
       ),
       bottomNavigationBar: _buildBottomNavigation(),
     );
   }
 
-  // L01-01: Empty State
+  // Mengatur tampilan berdasarkan tab navigasi yang dipilih
+  Widget _buildBodyContent() {
+    switch (_currentIndex) {
+      case 0:
+        // Tab Catatan (Pojok Kiri Bawah) -> Menampilkan UI Catatan Keuangan
+        return CatatanKeuanganPage(
+          userId: widget.user?.userId.toString() ?? 'USR-001',
+        );
+      case 2:
+        // Tab Beranda
+        return _transactions.isNotEmpty
+            ? _buildPopulatedState()
+            : _buildEmptyState();
+      default:
+        // Placeholder untuk tab Grafik (1), Target (3), Profil (4)
+        return Center(
+          child: Text(
+            'Halaman dalam pengembangan',
+            style: TextStyle(color: AppColors.textMuted),
+          ),
+        );
+    }
+  }
+
+  // L01-01: Empty State (Warna Cream & Biru Muda Halus)
   Widget _buildEmptyState() {
+    String userName = widget.user?.namaLengkap ?? 'User';
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 12.0),
+              child: Text(
+                'Halo, $userName!',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textDark,
+                ),
+              ),
+            ),
+          ),
           const Spacer(),
           Container(
-            width: 160,
-            height: 160,
+            width: 150,
+            height: 150,
             decoration: const BoxDecoration(
-              color: Color(0xFFE0E0E0),
+              color: AppColors.babyBlueLight,
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.account_balance_wallet_outlined,
-              size: 80,
-              color: Colors.black87,
+              size: 75,
+              color: AppColors.babyBluePrimary,
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 28),
           const Text(
             'Kelola keuanganmu\ndengan lebih mudah',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Colors.black,
+              color: AppColors.textDark,
             ),
           ),
           const SizedBox(height: 12),
@@ -125,26 +188,28 @@ class _HomePageState extends State<HomePage> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey,
+              color: AppColors.textMuted,
+              height: 1.4,
             ),
           ),
           const SizedBox(height: 32),
           SizedBox(
             width: double.infinity,
-            height: 48,
-            child: ElevatedButton(
+            height: 50,
+            child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE0E0E0),
+                backgroundColor: AppColors.babyBluePrimary,
+                foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              onPressed: () {},
-              child: const Text(
+              onPressed: _bukaHalamanCatatan,
+              icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
+              label: const Text(
                 '+ Tambah Transaksi',
                 style: TextStyle(
-                  color: Colors.black,
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
                 ),
@@ -157,7 +222,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // L01-02: Populated State
+  // L01-02: Populated State (Warna Cream & Biru Muda Halus)
   Widget _buildPopulatedState() {
     String userName = widget.user?.namaLengkap ?? 'User';
 
@@ -168,20 +233,36 @@ class _HomePageState extends State<HomePage> {
         children: [
           Text(
             'Halo, $userName!',
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textDark,
+            ),
           ),
           const SizedBox(height: 4),
           const Text(
             'Udah catet pengeluaran kamu belum?',
-            style: TextStyle(fontSize: 14, color: Colors.grey),
+            style: TextStyle(fontSize: 14, color: AppColors.textMuted),
           ),
           const SizedBox(height: 20),
+          // Kartu Saldo Utama (Baby Blue Gradient)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(20.0),
             decoration: BoxDecoration(
-              color: const Color(0xFFEEEEEE),
-              borderRadius: BorderRadius.circular(12),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF6BA8EE), Color(0xFF9AC5F4)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.babyBluePrimary.withValues(alpha: 0.25),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -189,16 +270,30 @@ class _HomePageState extends State<HomePage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Saldo Tersedia', style: TextStyle(fontSize: 13, color: Colors.black54)),
+                    const Text(
+                      'Saldo Tersedia',
+                      style: TextStyle(fontSize: 13, color: Colors.white70),
+                    ),
                     const SizedBox(height: 6),
                     Text(
-                      _isSaldoHidden ? 'Rp. ••••••••' : _formatRupiah(_saldoTersedia),
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      _isSaldoHidden
+                          ? 'Rp. ••••••••'
+                          : _formatRupiah(_saldoTersedia),
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                   ],
                 ),
                 IconButton(
-                  icon: Icon(_isSaldoHidden ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                  icon: Icon(
+                    _isSaldoHidden
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    color: Colors.white,
+                  ),
                   onPressed: () {
                     setState(() {
                       _isSaldoHidden = !_isSaldoHidden;
@@ -208,30 +303,39 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
+          // Kartu Pemasukan & Pengeluaran (Cream Card)
           Row(
             children: [
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.all(12.0),
+                  padding: const EdgeInsets.all(14.0),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.white,
+                    border: Border.all(color: AppColors.creamCard, width: 1.5),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.arrow_upward, size: 16, color: Colors.black),
+                          Icon(Icons.arrow_downward_rounded,
+                              size: 16, color: AppColors.incomeGreen),
                           SizedBox(width: 4),
-                          Text('Pemasukan', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text('Pemasukan',
+                              style: TextStyle(
+                                  fontSize: 12, color: AppColors.textMuted)),
                         ],
                       ),
                       const SizedBox(height: 6),
                       Text(
                         _formatRupiah(_totalPemasukan),
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textDark,
+                        ),
                       ),
                     ],
                   ),
@@ -240,25 +344,33 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(width: 12),
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.all(12.0),
+                  padding: const EdgeInsets.all(14.0),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.white,
+                    border: Border.all(color: AppColors.creamCard, width: 1.5),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.arrow_downward, size: 16, color: Colors.black),
+                          Icon(Icons.arrow_upward_rounded,
+                              size: 16, color: AppColors.expenseRed),
                           SizedBox(width: 4),
-                          Text('Pengeluaran', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text('Pengeluaran',
+                              style: TextStyle(
+                                  fontSize: 12, color: AppColors.textMuted)),
                         ],
                       ),
                       const SizedBox(height: 6),
                       Text(
                         _formatRupiah(_totalPengeluaran),
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textDark,
+                        ),
                       ),
                     ],
                   ),
@@ -267,18 +379,27 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
           const SizedBox(height: 24),
+          // Header Catatan Terbaru + Tombol "Lihat Semua"
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 'Catatan terbaru',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textDark,
+                ),
               ),
               GestureDetector(
-                onTap: () {},
+                onTap: _bukaHalamanCatatan, // Mengarahkan ke menu Catatan
                 child: const Text(
                   'Lihat Semua',
-                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.babyBluePrimary,
+                  ),
                 ),
               ),
             ],
@@ -287,31 +408,57 @@ class _HomePageState extends State<HomePage> {
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: _transactions.length,
+            itemCount: _transactions.length > 3 ? 3 : _transactions.length,
             itemBuilder: (context, index) {
               final tx = _transactions[index];
               bool isPemasukan = tx['jenis'] == 'Pemasukan';
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 12.0),
+                padding: const EdgeInsets.all(12.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.creamCard, width: 1.5),
+                ),
                 child: Row(
                   children: [
                     Container(
                       width: 44,
                       height: 44,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFEEEEEE),
-                        shape: BoxShape.circle,
+                      decoration: BoxDecoration(
+                        color: isPemasukan
+                            ? const Color(0xFFE8F5E9)
+                            : AppColors.babyBlueLight,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(tx['icon'] as IconData?, color: Colors.black87),
+                      child: Icon(
+                        tx['icon'] as IconData?,
+                        color: isPemasukan
+                            ? AppColors.incomeGreen
+                            : AppColors.babyBluePrimary,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(tx['judul'] as String, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                          Text(tx['jenis'] as String, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                          Text(
+                            tx['judul'] as String,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: AppColors.textDark,
+                            ),
+                          ),
+                          Text(
+                            tx['jenis'] as String,
+                            style: const TextStyle(
+                              color: AppColors.textMuted,
+                              fontSize: 12,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -320,9 +467,21 @@ class _HomePageState extends State<HomePage> {
                       children: [
                         Text(
                           '${isPemasukan ? '+' : '-'}${_formatRupiah(tx['nominal'] as int)}',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: isPemasukan
+                                ? AppColors.incomeGreen
+                                : AppColors.expenseRed,
+                          ),
                         ),
-                        Text(tx['tanggal'] as String, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                        Text(
+                          tx['tanggal'] as String,
+                          style: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 12,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -338,15 +497,20 @@ class _HomePageState extends State<HomePage> {
   Widget _buildBottomNavigation() {
     return BottomNavigationBar(
       currentIndex: _currentIndex,
+      backgroundColor: Colors.white,
       type: BottomNavigationBarType.fixed,
-      selectedItemColor: Colors.black,
-      unselectedItemColor: Colors.grey,
-      selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+      selectedItemColor: AppColors.babyBluePrimary,
+      unselectedItemColor: AppColors.textMuted,
+      selectedLabelStyle:
+          const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
       unselectedLabelStyle: const TextStyle(fontSize: 11),
       onTap: (index) {
         setState(() {
           _currentIndex = index;
         });
+        if (index == 2) {
+          _loadHomeData();
+        }
       },
       items: const [
         BottomNavigationBarItem(

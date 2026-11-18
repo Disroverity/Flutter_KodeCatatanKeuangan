@@ -1,15 +1,15 @@
 class CatatanKeuangan {
   // Atribut Private (-)
   final int? _catatanId;
-  final int _userId;
-  final double _totalPemasukan;
-  final double _totalPengeluaran;
-  final double _saldo;
+  final String _userId; // Disesuaikan ke String untuk mendukung ID unik (USR-XXX)
+  double _totalPemasukan;
+  double _totalPengeluaran;
+  double _saldo;
 
   // Constructor
   CatatanKeuangan({
     int? catatanId,
-    required int userId,
+    required String userId,
     double totalPemasukan = 0.0,
     double totalPengeluaran = 0.0,
     double saldo = 0.0,
@@ -21,35 +21,40 @@ class CatatanKeuangan {
 
   // Public Getters (+)
   int? get catatanId => _catatanId;
-  int get userId => _userId;
+  String get userId => _userId;
   double get totalPemasukan => _totalPemasukan;
   double get totalPengeluaran => _totalPengeluaran;
   double get saldo => _saldo;
 
-  // Public Methods (+)
+  // Public Methods (+) sesuai Sequence Diagram
   double hitungSaldo() {
-    return _totalPemasukan - _totalPengeluaran;
+    _saldo = _totalPemasukan - _totalPengeluaran;
+    return _saldo;
   }
 
-// Mengambil ringkasan/detail berdasarkan string periode ("Bulan Ini", "Hari Ini", dll)
+  void updateSaldoSetelahTransaksi(String jenis, double nominal) {
+    if (jenis == 'Pemasukan') {
+      _totalPemasukan += nominal;
+    } else {
+      _totalPengeluaran += nominal;
+    }
+    hitungSaldo();
+  }
+
   Map<String, dynamic> getDetailsByPeriode(String periode) {
-    return {};
+    return {
+      'periode': periode,
+      'pemasukan': _totalPemasukan,
+      'pengeluaran': _totalPengeluaran,
+      'saldo': hitungSaldo(),
+    };
   }
 
-// Mengambil daftar transaksi berdasarkan custom date range (date picker)
   List<dynamic> getTransactionsByDateRange(DateTime startDate, DateTime endDate) {
     return [];
   }
 
-  double getTotalPemasukan() {
-    return _totalPemasukan;
-  }
-
-  double getTotalPengeluaran() {
-    return _totalPengeluaran;
-  }
-
-  double getTotalSaldo() {
-    return _saldo;
-  }
+  double getTotalPemasukan() => _totalPemasukan;
+  double getTotalPengeluaran() => _totalPengeluaran;
+  double getTotalSaldo() => _saldo;
 }

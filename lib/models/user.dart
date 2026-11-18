@@ -1,6 +1,6 @@
 class User {
 
-  final int? _userId;
+  final String? _userId;
   final String _namaLengkap;
   final String _username;
   final String _email;
@@ -9,7 +9,7 @@ class User {
 
   // Constructor
   User({
-    int? userId,
+    String? userId,
     required String namaLengkap,
     required String username,
     required String email,
@@ -23,7 +23,7 @@ class User {
         _fotoProfil = fotoProfil;
 
   // Public Getters (+)
-  int? get userId => _userId;
+  String? get userId => _userId;
   String get namaLengkap => _namaLengkap;
   String get username => _username;
   String get email => _email;
@@ -33,7 +33,7 @@ class User {
   // Factory Constructor dari Response JSON API Login
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      userId: json['user_id'],
+      userId: json['user_id']?.toString(),
       namaLengkap: json['nama_lengkap'] ?? '',
       username: json['username'] ?? '',
       email: json['email'] ?? '',
