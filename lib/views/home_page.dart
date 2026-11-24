@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/user.dart';
 import 'catatan_page.dart';
 import '../controllers/catatan_controller.dart';
+import 'informasi_keuangan_page.dart';
 
 class HomePage extends StatefulWidget {
   final User? user;
@@ -112,11 +113,16 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Mengatur tampilan berdasarkan tab navigasi yang dipilih
-  Widget _buildBodyContent() {
+Widget _buildBodyContent() {
     switch (_currentIndex) {
       case 0:
         // Tab Catatan (Pojok Kiri Bawah) -> Menampilkan UI Catatan Keuangan
         return CatatanKeuanganPage(
+          userId: widget.user?.userId.toString() ?? 'USR-001',
+        );
+      case 1:
+        // Tab Grafik -> Menampilkan UI Informasi Keuangan (Use Case 3)
+        return InformasiKeuanganPage(
           userId: widget.user?.userId.toString() ?? 'USR-001',
         );
       case 2:
@@ -125,7 +131,7 @@ class _HomePageState extends State<HomePage> {
             ? _buildPopulatedState()
             : _buildEmptyState();
       default:
-        // Placeholder untuk tab Grafik (1), Target (3), Profil (4)
+        // Placeholder untuk tab Target (3), Profil (4)
         return Center(
           child: Text(
             'Halaman dalam pengembangan',
