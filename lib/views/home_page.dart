@@ -3,6 +3,8 @@ import '../models/user.dart';
 import 'catatan_page.dart';
 import '../controllers/catatan_controller.dart';
 import 'informasi_keuangan_page.dart';
+import 'target_keuangan_page.dart';
+import 'profil_page.dart';
 
 class HomePage extends StatefulWidget {
   final User? user;
@@ -130,14 +132,13 @@ Widget _buildBodyContent() {
         return _transactions.isNotEmpty
             ? _buildPopulatedState()
             : _buildEmptyState();
+      case 3:
+        return TargetKeuanganPage(userId: widget.user?.userId.toString() ?? 'USR-001',);
       default:
-        // Placeholder untuk tab Target (3), Profil (4)
-        return Center(
-          child: Text(
-            'Halaman dalam pengembangan',
-            style: TextStyle(color: AppColors.textMuted),
-          ),
-        );
+        return ProfilPage(
+            userId: widget.user?.userId.toString() ?? 'USR-001',
+            username: widget.user?.username ?? 'User', // sesuaikan jika nama field username di HomePage berbeda
+          );
     }
   }
 

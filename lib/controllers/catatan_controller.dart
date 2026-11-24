@@ -179,8 +179,10 @@ class CatatanController {
           'jenis_baru': jenisBaru,
           'nama_catatan': namaCatatan,
           'nominal': nominal,
+          'jumlah': nominal, // <-- TAMBAHKAN INI
           'kategori': jenisBaru == 'Pemasukan' ? 'Pemasukan' : kategori,
           'tanggal': tanggalStr,
+          'date': tanggalStr, // <-- TAMBAHKAN INI (opsional, aman)
           'deskripsi': deskripsi ?? '',
         }),
       );

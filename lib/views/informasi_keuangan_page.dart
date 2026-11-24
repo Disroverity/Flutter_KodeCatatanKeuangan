@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../controllers/laporan_controller.dart';
-import 'catatan_page.dart'; // Menggunakan AppColors yang sama
+import 'catatan_page.dart'; 
+import '../controllers/profil_controller.dart';
 
 // =========================================================================
 // L03-01: PAGE INFORMASI KEUANGAN UTAMA
@@ -517,7 +518,7 @@ class _DetailGrafikPageState extends State<DetailGrafikPage> {
 
   String _formatShortDate(DateTime d) => '${d.day}/${d.month}/${d.year}';
 
-  // Btn_CSV: Unduh Laporan (CSV)
+ // Btn_CSV: Unduh Laporan (CSV)
   Future<void> _handleUnduhCSV() async {
     setState(() => _isExporting = true);
     final label =
@@ -529,6 +530,14 @@ class _DetailGrafikPageState extends State<DetailGrafikPage> {
     setState(() => _isExporting = false);
 
     if (mounted) {
+      // Catat aktivitas ekspor CSV ke Log Aktivitas secara real-time
+      await ProfilController.catatAktivitas(
+        userId: widget.userId,
+        modul: 'Informasi Keuangan',
+        aksi: 'Unduh Laporan CSV',
+        detail: 'Periode: $label ($fileName)',
+      );
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Laporan CSV "$fileName" berhasil dibuat!'),
@@ -542,31 +551,42 @@ class _DetailGrafikPageState extends State<DetailGrafikPage> {
   }
 
   // Btn_PDF: Ekspor Ringkasan (PDF)
-  Future<void> _handleEksporPDF() async {
+ Future<void> _handleEksporPDF() async {
     setState(() => _isExporting = true);
     final label =
         '${_formatShortDate(_startDate)} - ${_formatShortDate(_endDate)}';
+
+    final logs = await ProfilController().getActivityLogs(widget.userId);
+
     final fileName = await _controller.exportToPDF(
       totalPemasukan: _totalPemasukan,
       totalPengeluaran: _totalPengeluaran,
       saldo: _saldo,
       kategoriPengeluaran: _kategoriPengeluaran,
-      transaksi: _transaksiList,
+      transaksi: _transaksiList, // gunakan _transaksiList jika di halaman utama
+      auditLogs: logs,
       periodeLabel: label,
     );
     setState(() => _isExporting = false);
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Ringkasan PDF "$fileName" berhasil diekspor!'),
-          backgroundColor: AppColors.babyBluePrimary,
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
-    }
+    if (!mounted) return;
+
+    await ProfilController.catatAktivitas(
+      userId: widget.userId,
+      modul: 'Informasi Keuangan',
+      aksi: 'Ekspor Laporan Transparan PDF',
+      detail: 'Periode: $label ($fileName)',
+    );
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Laporan PDF transparan "$fileName" berhasil diekspor!'),
+        backgroundColor: AppColors.babyBluePrimary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 
   @override

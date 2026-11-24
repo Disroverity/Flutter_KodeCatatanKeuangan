@@ -132,6 +132,7 @@ class LaporanController {
     required double saldo,
     required Map<String, double> kategoriPengeluaran,
     required List transaksi,
+    required List<Map<String, dynamic>> auditLogs,
     required String periodeLabel,
   }) async {
     final pdf = pw.Document();
@@ -226,6 +227,51 @@ class LaporanController {
               ];
             }).toList(),
           ),
+          pw.SizedBox(height: 22),
+          pw.Text(
+            'Timeline Audit Aktivitas & Perubahan Data (Anti-Manipulasi)',
+            style: pw.TextStyle(
+              fontSize: 13,
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColors.red900,
+            ),
+          ),
+          pw.SizedBox(height: 4),
+          pw.Text(
+            'Catatan otomatis seluruh penambahan, pengeditan (nominal lama -> baru), dan penghapusan transaksi secara real-time:',
+            style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
+          ),
+          pw.SizedBox(height: 8),
+          auditLogs.isEmpty
+              ? pw.Text(
+                  'Tidak ada riwayat perubahan atau penghapusan data yang tercatat.',
+                  style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
+                )
+              : pw.TableHelper.fromTextArray(
+                  headerStyle: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.white,
+                    fontSize: 9,
+                  ),
+                  headerDecoration: const pw.BoxDecoration(
+                    color: PdfColor.fromInt(0xFF37474F),
+                  ),
+                  cellStyle: const pw.TextStyle(fontSize: 8.5),
+                  cellAlignment: pw.Alignment.centerLeft,
+                  columnWidths: {
+                    0: const pw.FlexColumnWidth(2.2),
+                    1: const pw.FlexColumnWidth(2.0),
+                    2: const pw.FlexColumnWidth(4.5),
+                  },
+                  headers: ['Waktu Kejadian', 'Aktivitas', 'Detail Perubahan (Sebelum -> Sesudah)'],
+                  data: auditLogs.map((log) {
+                    return [
+                      log['waktu_format']?.toString() ?? '-',
+                      log['aksi']?.toString() ?? '-',
+                      log['detail']?.toString() ?? '-',
+                    ];
+                  }).toList(),
+                ),
         ],
       ),
     );

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../controllers/catatan_controller.dart';
 import '../models/catatan_keuangan.dart';
+import '../controllers/target_controller.dart';
+import 'target_keuangan_page.dart';
 
 class AppColors {
   static const Color creamBackground = Color(0xFFFAF8F5);
@@ -165,6 +167,21 @@ class _CatatanKeuanganPageState extends State<CatatanKeuanganPage> {
             ),
           ),
         );
+      }
+      if (result['data']['jenis'] == 'Pengeluaran' && mounted) {
+        final statusLimit =
+            await TargetController().cekStatusLimitHarian(widget.userId);
+        if (statusLimit['mendekatiLimit'] == true && mounted) {
+          await tampilkanNotifikasiLimitPengeluaran(
+            context,
+            statusLimit: statusLimit,
+            onLihatTransaksi: () {
+              setState(() {
+                _selectedFilter = 'Pengeluaran';
+              });
+            },
+          );
+        }
       }
     }
   }
@@ -438,7 +455,22 @@ class _CatatanKeuanganPageState extends State<CatatanKeuanganPage> {
                                               ),
                                             ),
                                           );
-                                        }
+                                          if (preset['jenis'] == 'Pengeluaran' && mounted) {
+                                            final statusLimit =
+                                                await TargetController().cekStatusLimitHarian(widget.userId);
+                                            if (statusLimit['mendekatiLimit'] == true && mounted) {
+                                              await tampilkanNotifikasiLimitPengeluaran(
+                                                this.context,
+                                                statusLimit: statusLimit,
+                                                onLihatTransaksi: () {
+                                                  setState(() {
+                                                    _selectedFilter = 'Pengeluaran';
+                                                  });
+                                                },
+                                              );
+                                            }
+                                          }
+                                        }           
                                       },
                                       borderRadius: BorderRadius.circular(20),
                                       child: Container(
@@ -2032,9 +2064,24 @@ class _EditTransaksiPageState extends State<EditTransaksiPage> {
 
     setState(() => _isSaving = true);
 
-    final nominal = double.parse(
-      _nominalController.text.replaceAll('.', '').replaceAll(',', ''),
-    );
+    final rawJumlah = _nominalController.text
+        .replaceAll('Rp', '')
+        .replaceAll('.', '')
+        .replaceAll(',', '')
+        .trim();
+
+    final parsedJumlah = double.tryParse(rawJumlah);
+    if (parsedJumlah == null || parsedJumlah <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Jumlah harus diisi dengan angka yang valid!'),
+          backgroundColor: AppColors.expenseRed,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
 
     final res = await widget.controller.simpanEdit(
       transaksiId: int.parse(widget.transaksi['id'].toString()),
@@ -2042,7 +2089,7 @@ class _EditTransaksiPageState extends State<EditTransaksiPage> {
       jenisLama: widget.transaksi['jenis'],
       jenisBaru: _jenisTransaksi,
       namaCatatan: _namaController.text.trim(),
-      nominal: nominal,
+      nominal: parsedJumlah,
       kategori: _selectedKategori,
       tanggal: _selectedDate,
       deskripsi: _deskripsiController.text.trim(),

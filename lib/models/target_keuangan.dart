@@ -1,121 +1,61 @@
 class TargetKeuangan {
-  // Atribut Private (-)
-  final int? _targetId;
-  final int _userId;
-  final String _nama;
-  final double _jumlahTarget;
-  final double _progres;
-  final DateTime _deadline;
+  final int targetId;
+  final String userId;
+  final String jenis; // 'Tabungan' atau 'Penghasilan'
+  final String namaTarget;
+  final double nominalTarget;
+  final double nominalTerkumpul;
+  final DateTime tenggat;
+  final String keterangan;
+  final bool batasiHarian;
 
-  // Constructor
   TargetKeuangan({
-    int? targetId,
-    required int userId,
-    required String nama,
-    required double jumlahTarget,
-    double progres = 0.0,
-    required DateTime deadline,
-  })  : _targetId = targetId,
-        _userId = userId,
-        _nama = nama,
-        _jumlahTarget = jumlahTarget,
-        _progres = progres,
-        _deadline = deadline;
+    required this.targetId,
+    required this.userId,
+    required this.jenis,
+    required this.namaTarget,
+    required this.nominalTarget,
+    required this.nominalTerkumpul,
+    required this.tenggat,
+    this.keterangan = '',
+    this.batasiHarian = false,
+  });
 
-  // Public Getters (+)
-  int? get targetId => _targetId;
-  int get userId => _userId;
-  String get nama => _nama;
-  double get jumlahTarget => _jumlahTarget;
-  double get progres => _progres;
-  DateTime get deadline => _deadline;
-
-  // Public Methods (+)
-  Future<bool> setTarget() async {
-    return true;
+  factory TargetKeuangan.fromJson(Map<String, dynamic> json) {
+    return TargetKeuangan(
+      targetId: int.tryParse(json['target_id'].toString()) ?? 0,
+      userId: json['user_id']?.toString() ?? '',
+      jenis: json['jenis']?.toString() ?? 'Tabungan',
+      namaTarget: json['nama_target']?.toString() ?? '',
+      nominalTarget: double.tryParse(json['nominal_target'].toString()) ?? 0.0,
+      nominalTerkumpul: double.tryParse(json['nominal_terkumpul'].toString()) ?? 0.0,
+      tenggat: DateTime.tryParse(json['tenggat'].toString()) ?? DateTime.now(),
+      keterangan: json['keterangan']?.toString() ?? '',
+      batasiHarian: json['batasi_harian'] == 1 || json['batasi_harian'] == true,
+    );
   }
 
-  Future<bool> updateProgres(double nominal) async {
-    return true;
+  // Persentase pencapaian (0.0 - 1.0)
+  double get rasioPencapaian {
+    if (nominalTarget <= 0) return 0.0;
+    return (nominalTerkumpul / nominalTarget).clamp(0.0, 1.0);
   }
 
-  double getPersentaseProgres() {
-    if (_jumlahTarget == 0) return 0.0;
-    return (_progres / _jumlahTarget) * 100;
+  int get persenTercapai => (rasioPencapaian * 100).round();
+
+  double get sisaNominal => (nominalTarget - nominalTerkumpul).clamp(0.0, double.infinity);
+
+  int get sisaHari {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final deadline = DateTime(tenggat.year, tenggat.month, tenggat.day);
+    final diff = deadline.difference(today).inDays;
+    return diff < 0 ? 0 : diff;
   }
 
-  Future<bool> isTargetReached() async {
-    return _progres >= _jumlahTarget;
-  }
-
-  Future<bool> gantiStatus() async {
-    return true;
-  }
-}
-
-// 1. Sub-Entity Target Tabungan
-class TargetTabungan extends TargetKeuangan {
-  final String _apaTabungan;
-
-  TargetTabungan({
-    required int userId,
-    required String nama,
-    required double jumlahTarget,
-    required DateTime deadline,
-    required String apaTabungan,
-  })  : _apaTabungan = apaTabungan,
-        super(userId: userId, nama: nama, jumlahTarget: jumlahTarget, deadline: deadline);
-
-  String get apaTabungan => _apaTabungan;
-}
-
-// 2. Sub-Entity Target Pemasukan
-class TargetPemasukan extends TargetKeuangan {
-  final String _apaPemasukan;
-
-  TargetPemasukan({
-    required int userId,
-    required String nama,
-    required double jumlahTarget,
-    required DateTime deadline,
-    required String apaPemasukan,
-  })  : _apaPemasukan = apaPemasukan,
-        super(userId: userId, nama: nama, jumlahTarget: jumlahTarget, deadline: deadline);
-
-  String get apaPemasukan => _apaPemasukan;
-}
-
-// 3. Sub-Entity Target Pengeluaran (Limit Harian & Notifikasi)
-class TargetPengeluaran extends TargetKeuangan {
-  final double _limitHarian;
-  final int _persentasePeringatan; // Misal: 80% limit tercapai
-  final bool _isAlertActive;
-
-  TargetPengeluaran({
-    required int userId,
-    required String nama,
-    required double jumlahTarget,
-    required DateTime deadline,
-    required double limitHarian,
-    int persentasePeringatan = 80,
-    bool isAlertActive = true,
-  })  : _limitHarian = limitHarian,
-        _persentasePeringatan = persentasePeringatan,
-        _isAlertActive = isAlertActive,
-        super(userId: userId, nama: nama, jumlahTarget: jumlahTarget, deadline: deadline);
-
-  double get limitHarian => _limitHarian;
-  int get persentasePeringatan => _persentasePeringatan;
-  bool get isAlertActive => _isAlertActive;
-
-  // Method khusus pemicu notifikasi
-  bool checkLimitExceeded(double totalPengeluaranHariIni) {
-    if (!_isAlertActive) return false;
-    double ambangBatas = _limitHarian * (_persentasePeringatan / 100);
-    return totalPengeluaranHariIni >= ambangBatas;
-  }
-
-  void triggerNotificationAlert() {
-    // Memanggil fungsi Push Notification di Flutter/Controller
+  double get saranAlokasiHarian {
+    if (sisaNominal <= 0) return 0.0;
+    final hari = sisaHari <= 0 ? 1 : sisaHari;
+    return sisaNominal / hari;
   }
 }
