@@ -8,28 +8,41 @@ import 'package:printing/printing.dart';
 import '../config/api_config.dart';
 
 class LaporanController {
-  // Hitung rentang tanggal dari pilihan Ddl_Periode (Hari ini / Minggu ini / Bulan ini)
-  Map<String, String> hitungRentangPeriode(String periode) {
+  // Hitung rentang tanggal dari pilihan periode ('Hari ini' / 'Minggu ini' / 'Bulan ini')
+  Map<String, DateTime> hitungRentangPeriodeDate(String periode) {
     final now = DateTime.now();
-    DateTime start;
-    DateTime end = now;
+    final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    DateTime startOfRange;
 
     if (periode == 'Hari ini') {
-      start = DateTime(now.year, now.month, now.day);
+      startOfRange = DateTime(now.year, now.month, now.day, 0, 0, 0);
     } else if (periode == 'Minggu ini') {
-      start = now.subtract(Duration(days: now.weekday - 1));
+      final monday = now.subtract(Duration(days: now.weekday - 1));
+      startOfRange = DateTime(monday.year, monday.month, monday.day, 0, 0, 0);
     } else {
       // Default: 'Bulan ini'
-      start = DateTime(now.year, now.month, 1);
+      startOfRange = DateTime(now.year, now.month, 1, 0, 0, 0);
     }
 
+    return {
+      'startDate': startOfRange,
+      'endDate': endOfToday,
+    };
+  }
+
+  // Versi String (YYYY-MM-DD)
+  Map<String, String> hitungRentangPeriode(String periode) {
+    final range = hitungRentangPeriodeDate(periode);
     String fmt(DateTime d) =>
         '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
-    return {'startDate': fmt(start), 'endDate': fmt(end)};
+    return {
+      'startDate': fmt(range['startDate']!),
+      'endDate': fmt(range['endDate']!),
+    };
   }
 
-  // Langkah 2-4: loadDashboardData("Bulan ini") & filterByPeriodeCepat(periode)
+  //loadDashboardData("Bulan ini") & filterByPeriodeCepat(periode)
   Future<Map<String, dynamic>> loadDashboardData(
       String userId, String periode) async {
     final range = hitungRentangPeriode(periode);
@@ -98,7 +111,7 @@ class LaporanController {
     }
   }
 
-  // Langkah 21-23: exportToCSV() -> generateFileDocument()
+  //exportToCSV() -> generateFileDocument()
   Future<String> exportToCSV({
     required List transaksi,
     required String periodeLabel,
@@ -150,6 +163,16 @@ class LaporanController {
         }
       }
       return 'Rp $res';
+    }
+
+    String bersihkanTeksPdf(dynamic input) {
+      final raw = (input ?? '-').toString();
+      // Ganti bullet / karakter non-ASCII aneh dengan '-' atau spasi agar tidak jadi kotak silang [X]
+      final normalized = raw
+          .replaceAll('•', '-')
+          .replaceAll('·', '-')
+          .replaceAll(RegExp(r'[^\x20-\x7E]'), ' ');
+      return normalized.replaceAll(RegExp(r'\s+'), ' ').trim();
     }
 
     pdf.addPage(
@@ -215,7 +238,7 @@ class LaporanController {
                   pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 8),
           pw.TableHelper.fromTextArray(
-            headers: ['Tanggal', 'Judul', 'Jenis', 'Kategori', 'Jumlah'],
+            headers: ['Tanggal', 'Nama Catatan', 'Jenis', 'Kategori', 'Nominal'],
             cellStyle: const pw.TextStyle(fontSize: 9),
             cellPadding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 4),
             columnWidths: {
@@ -275,9 +298,9 @@ class LaporanController {
                   headers: ['Waktu Kejadian', 'Aktivitas', 'Detail Perubahan (Sebelum -> Sesudah)'],
                   data: auditLogs.map((log) {
                     return [
-                      log['waktu_format']?.toString() ?? '-',
-                      log['aksi']?.toString() ?? '-',
-                      log['detail']?.toString() ?? '-',
+                      bersihkanTeksPdf(log['waktu_format']),
+                      bersihkanTeksPdf(log['aksi']),
+                      bersihkanTeksPdf(log['detail']),
                     ];
                   }).toList(),
                 ),

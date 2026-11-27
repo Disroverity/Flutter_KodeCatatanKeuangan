@@ -447,9 +447,9 @@ class _DetailGrafikPageState extends State<DetailGrafikPage> {
   @override
   void initState() {
     super.initState();
-    final range = _controller.hitungRentangPeriode(widget.initialPeriode);
-    _startDate = DateTime.parse(range['startDate']!);
-    _endDate = DateTime.parse(range['endDate']!);
+    final range = _controller.hitungRentangPeriodeDate(widget.initialPeriode);
+    _startDate = range['startDate']!;
+    _endDate = range['endDate']!;
     _muatDataRange();
   }
 
@@ -471,7 +471,7 @@ class _DetailGrafikPageState extends State<DetailGrafikPage> {
     }
   }
 
-  // Picker_Date: DateRangePicker (Langkah 14-19 Sequence Diagram)
+// Picker_Date: DateRangePicker
   Future<void> _pilihRentangTanggal() async {
     final picked = await showDateRangePicker(
       context: context,
@@ -494,8 +494,22 @@ class _DetailGrafikPageState extends State<DetailGrafikPage> {
 
     if (picked != null) {
       setState(() {
-        _startDate = picked.start;
-        _endDate = picked.end;
+        _startDate = DateTime(
+          picked.start.year,
+          picked.start.month,
+          picked.start.day,
+          0,
+          0,
+          0,
+        );
+        _endDate = DateTime(
+          picked.end.year,
+          picked.end.month,
+          picked.end.day,
+          23,
+          59,
+          59,
+        );
       });
       await _muatDataRange();
     }
@@ -517,6 +531,16 @@ class _DetailGrafikPageState extends State<DetailGrafikPage> {
   }
 
   String _formatShortDate(DateTime d) => '${d.day}/${d.month}/${d.year}';
+
+  String _buildPeriodeLabel() {
+    final samaHari = _startDate.year == _endDate.year &&
+        _startDate.month == _endDate.month &&
+        _startDate.day == _endDate.day;
+    if (samaHari) {
+      return _formatShortDate(_startDate);
+    }
+    return '${_formatShortDate(_startDate)} - ${_formatShortDate(_endDate)}';
+  }
 
  // Btn_CSV: Unduh Laporan (CSV)
   Future<void> _handleUnduhCSV() async {
