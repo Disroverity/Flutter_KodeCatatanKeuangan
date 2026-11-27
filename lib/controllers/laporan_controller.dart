@@ -111,10 +111,10 @@ class LaporanController {
       final tgl = tx['tanggal'] ?? '';
       final jenis = tx['jenis'] ?? '';
       final kat = (tx['kategori'] ?? '').toString().replaceAll(',', ' ');
-      final judul = (tx['judul'] ?? '').toString().replaceAll(',', ' ');
-      final nom = tx['nominal'] ?? 0;
+      final namaCatatan = (tx['nama_catatan'] ?? '').toString().replaceAll(',', ' ');
+      final nom = tx['jumlah'] ?? 0;
       final desk = (tx['deskripsi'] ?? '').toString().replaceAll(',', ' ');
-      buffer.writeln('$id,$tgl,$jenis,$kat,$judul,$nom,$desk');
+      buffer.writeln('$id,$tgl,$jenis,$kat,$namaCatatan,$nom,$desk');
     }
 
     final bytes = Uint8List.fromList(utf8.encode(buffer.toString()));
@@ -215,12 +215,21 @@ class LaporanController {
                   pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 8),
           pw.TableHelper.fromTextArray(
-            headers: ['Tanggal', 'Judul', 'Jenis', 'Kategori', 'Nominal'],
+            headers: ['Tanggal', 'Judul', 'Jenis', 'Kategori', 'Jumlah'],
+            cellStyle: const pw.TextStyle(fontSize: 9),
+            cellPadding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+            columnWidths: {
+              0: const pw.FixedColumnWidth(72), // Tanggal: muat '2026-11-25' 1 baris
+              1: const pw.FlexColumnWidth(2.1),  // Judul / Nama Catatan
+              2: const pw.FixedColumnWidth(74), // Jenis: muat 'Pengeluaran' 1 baris
+              3: const pw.FlexColumnWidth(1.5),  // Kategori
+              4: const pw.FixedColumnWidth(72), // Jumlah
+            },
             data: transaksi.map((tx) {
-              final nom = double.tryParse(tx['nominal'].toString()) ?? 0.0;
+              final nom = double.tryParse(tx['jumlah'].toString()) ?? 0.0;
               return [
                 tx['tanggal'] ?? '',
-                tx['judul'] ?? '',
+                tx['nama_catatan'] ?? '',
                 tx['jenis'] ?? '',
                 tx['kategori'] ?? '',
                 rp(nom),

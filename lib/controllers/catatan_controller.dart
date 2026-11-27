@@ -29,10 +29,10 @@ class CatatanController {
           return rawData.map((item) {
             return {
               'id': item['id'],
-              'judul': item['judul'] ?? '',
+              'nama_catatan': item['nama_catatan'] ?? '',
               'jenis': item['jenis'] ?? 'Pengeluaran',
               'kategori': item['kategori'] ?? 'Lainnya',
-              'nominal': double.tryParse(item['nominal'].toString()) ?? 0.0,
+              'jumlah': double.tryParse(item['jumlah'].toString()) ?? 0.0,
               'tanggal': DateTime.tryParse(item['tanggal'].toString()) ?? DateTime.now(),
               'deskripsi': item['deskripsi'] ?? '',
             };
@@ -56,11 +56,11 @@ class CatatanController {
     if (namaCatatan.trim().isEmpty) {
       return 'Nama catatan wajib diisi!';
     }
-    final double? nominal = double.tryParse(
+    final double? jumlah = double.tryParse(
       nominalText.replaceAll('.', '').replaceAll(',', ''),
     );
-    if (nominal == null || nominal <= 0) {
-      return 'Masukkan nominal jumlah yang valid!';
+    if (jumlah == null || jumlah <= 0) {
+      return 'Masukkan jumlah yang valid!';
     }
     if (jenis == 'Pengeluaran' && (kategori == null || kategori.isEmpty)) {
       return 'Pilih kategori pengeluaran terlebih dahulu!';
@@ -76,7 +76,7 @@ class CatatanController {
     required CatatanKeuangan catatanKeuangan,
     required String jenis,
     required String namaCatatan,
-    required double nominal,
+    required double jumlah,
     String? kategori,
     required DateTime tanggal,
     String? deskripsi,
@@ -94,7 +94,7 @@ class CatatanController {
           'user_id': catatanKeuangan.userId,
           'jenis': jenis,
           'nama_catatan': namaCatatan,
-          'nominal': nominal,
+          'jumlah': jumlah,
           'kategori': jenis == 'Pemasukan' ? 'Pemasukan' : kategori,
           'tanggal': formattedDate,
           'deskripsi': deskripsi ?? '',
@@ -104,7 +104,7 @@ class CatatanController {
       final body = jsonDecode(response.body);
 
       if (response.statusCode == 200 && body['success'] == true) {
-        catatanKeuangan.updateSaldoSetelahTransaksi(jenis, nominal);
+        catatanKeuangan.updateSaldoSetelahTransaksi(jenis, jumlah);
         
         bool presetDisimpan = false;
         if (isPreset && canAddPreset(currentPresetCount)) {
@@ -112,7 +112,7 @@ class CatatanController {
             userId: catatanKeuangan.userId,
             namaCatatan: namaCatatan,
             jenis: jenis,
-            jumlah: nominal,
+            jumlah: jumlah,
             kategori: kategori,
             deskripsi: deskripsi,
           );
@@ -121,9 +121,9 @@ class CatatanController {
 
         final Map transaksiBaru = {
           'id': body['id'] ?? DateTime.now().millisecondsSinceEpoch,
-          'judul': namaCatatan,
+          'nama_catatan': namaCatatan,
           'jenis': jenis,
-          'nominal': nominal,
+          'jumlah': jumlah,
           'kategori': jenis == 'Pemasukan' ? 'Pemasukan' : kategori,
           'tanggal': tanggal,
           'deskripsi': deskripsi ?? '',
@@ -161,7 +161,7 @@ class CatatanController {
     required String jenisLama,
     required String jenisBaru,
     required String namaCatatan,
-    required double nominal,
+    required double jumlah,
     required String kategori,
     required DateTime tanggal,
     String? deskripsi,
@@ -178,8 +178,7 @@ class CatatanController {
           'jenis_lama': jenisLama,
           'jenis_baru': jenisBaru,
           'nama_catatan': namaCatatan,
-          'nominal': nominal,
-          'jumlah': nominal, // <-- TAMBAHKAN INI
+          'jumlah': jumlah,
           'kategori': jenisBaru == 'Pemasukan' ? 'Pemasukan' : kategori,
           'tanggal': tanggalStr,
           'date': tanggalStr, // <-- TAMBAHKAN INI (opsional, aman)
@@ -203,9 +202,14 @@ class CatatanController {
     required String userId,
   }) async {
     try {
-      final response = await http.delete(
-        Uri.parse('${ApiConfig.baseUrl}/transaksi/$jenis/$transaksiId?user_id=$userId'),
+      final uri = Uri.parse('${ApiConfig.baseUrl}/transaksi/$transaksiId').replace(
+        queryParameters: {
+          'jenis': jenis,
+          'userId': userId,
+        },
       );
+
+      final response = await http.delete(uri);
 
       final body = jsonDecode(response.body);
       if (response.statusCode == 200 && body['success'] == true) {
@@ -294,10 +298,10 @@ class CatatanController {
           'message': body['message'],
           'data': {
             'id': item['id'],
-            'judul': item['judul'],
+            'nama_catatan': item['nama_catatan'] ?? '',
             'jenis': item['jenis'],
             'kategori': item['kategori'],
-            'nominal': double.tryParse(item['nominal'].toString()) ?? 0.0,
+            'jumlah': double.tryParse(item['jumlah'].toString()) ?? 0.0,
             'tanggal': DateTime.tryParse(item['tanggal'].toString()) ?? DateTime.now(),
             'deskripsi': item['deskripsi'] ?? '',
           },

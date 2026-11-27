@@ -55,9 +55,9 @@ class _CatatanKeuanganPageState extends State<CatatanKeuanganPage> {
 
     for (var tx in data) {
       if (tx['jenis'] == 'Pemasukan') {
-        totalMasuk += (tx['nominal'] as double);
+        totalMasuk += (tx['jumlah'] as double);
       } else {
-        totalKeluar += (tx['nominal'] as double);
+        totalKeluar += (tx['jumlah'] as double);
       }
     }
 
@@ -706,7 +706,7 @@ class _CatatanKeuanganPageState extends State<CatatanKeuanganPage> {
                       return InkWell(
                         borderRadius: BorderRadius.circular(16),
                         onTap: () async {
-                          debugPrint('Item diklik: ${tx['judul']} (ID: ${tx['id']})');
+                          debugPrint('Item diklik: ${tx['nama_catatan']} (ID: ${tx['id']})');
                           final hasilAksi = await Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -778,7 +778,7 @@ class _CatatanKeuanganPageState extends State<CatatanKeuanganPage> {
                               ),
                             ),
                             title: Text(
-                              tx['judul'],
+                              tx['nama_catatan'],
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textDark,
@@ -800,7 +800,7 @@ class _CatatanKeuanganPageState extends State<CatatanKeuanganPage> {
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     Text(
-                                      '${isPemasukan ? '+' : '-'}${_formatRupiah(tx['nominal'])}',
+                                      '${isPemasukan ? '+' : '-'}${_formatRupiah(tx['jumlah'])}',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 14,
@@ -1026,7 +1026,7 @@ class _FormTambahTransaksiPageState extends State<FormTambahTransaksiPage> {
 
     setState(() => _isSaving = true);
 
-    final double nominal = double.parse(
+    final double jumlah = double.parse(
       _nominalController.text.replaceAll('.', '').replaceAll(',', ''),
     );
 
@@ -1034,7 +1034,7 @@ class _FormTambahTransaksiPageState extends State<FormTambahTransaksiPage> {
       catatanKeuangan: widget.catatanKeuangan,
       jenis: _jenisTransaksi,
       namaCatatan: _namaController.text.trim(),
-      nominal: nominal,
+      jumlah: jumlah,
       kategori: _selectedKategori,
       tanggal: _selectedDate!,
       deskripsi: _deskripsiController.text.trim(),
@@ -1387,11 +1387,11 @@ class _EditPresetPageState extends State<EditPresetPage> {
 
   Future<void> _simpanPerubahanPreset() async {
     final nama = _namaController.text.trim();
-    final nominal = double.tryParse(
+    final jumlah = double.tryParse(
       _nominalController.text.replaceAll('.', '').replaceAll(',', ''),
     );
 
-    if (nama.isEmpty || nominal == null || nominal <= 0) {
+    if (nama.isEmpty || jumlah == null || jumlah <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Nama catatan dan nominal wajib diisi dengan valid!'),
@@ -1407,7 +1407,7 @@ class _EditPresetPageState extends State<EditPresetPage> {
       presetId: widget.preset['preset_id'],
       jenis: _jenisTransaksi,
       namaCatatan: nama,
-      jumlah: nominal,
+      jumlah: jumlah,
       deskripsi: _deskripsiController.text.trim(),
     );
 
@@ -1650,8 +1650,8 @@ class DetailTransaksiPage extends StatefulWidget {
 class _DetailTransaksiPageState extends State<DetailTransaksiPage> {
   bool _isDeleting = false;
 
-  String _formatRupiah(double nominal) {
-    final intVal = nominal.toInt().toString();
+  String _formatRupiah(double jumlah) {
+    final intVal = jumlah.toInt().toString();
     final buffer = StringBuffer();
     int count = 0;
     for (int i = intVal.length - 1; i >= 0; i--) {
@@ -1706,7 +1706,7 @@ class _DetailTransaksiPageState extends State<DetailTransaksiPage> {
           style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark),
         ),
         content: Text(
-          'Catatan "${widget.transaksi['judul']}" akan dihapus permanen dan saldo akan dihitung ulang.',
+          'Catatan "${widget.transaksi['nama_catatan']}" akan dihapus permanen dan saldo akan dihitung ulang.',
           style: const TextStyle(color: AppColors.textMuted),
         ),
         actions: [
@@ -1734,6 +1734,7 @@ class _DetailTransaksiPageState extends State<DetailTransaksiPage> {
         jenis: widget.transaksi['jenis'],
         userId: widget.userId,
       );
+      print('Delete res: $res');
       setState(() => _isDeleting = false);
 
       if (res['success'] == true && mounted) {
@@ -1819,7 +1820,7 @@ class _DetailTransaksiPageState extends State<DetailTransaksiPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              widget.transaksi['judul'] ?? '',
+                              widget.transaksi['nama_catatan'] ?? '',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
@@ -1841,7 +1842,7 @@ class _DetailTransaksiPageState extends State<DetailTransaksiPage> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '${isPemasukan ? '+' : '-'}${_formatRupiah(widget.transaksi['nominal'])}',
+                            '${isPemasukan ? '+' : '-'}${_formatRupiah(widget.transaksi['jumlah'])}',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
@@ -2014,8 +2015,8 @@ class _EditTransaksiPageState extends State<EditTransaksiPage> {
     _selectedDate = widget.transaksi['tanggal'] is DateTime
         ? widget.transaksi['tanggal']
         : DateTime.tryParse(widget.transaksi['tanggal'].toString()) ?? DateTime.now();
-    _namaController = TextEditingController(text: widget.transaksi['judul'] ?? '');
-    final double nominalAwal = double.tryParse(widget.transaksi['nominal'].toString()) ?? 0.0;
+    _namaController = TextEditingController(text: widget.transaksi['nama_catatan'] ?? '');
+    final double nominalAwal = double.tryParse(widget.transaksi['jumlah'].toString()) ?? 0.0;
     _nominalController = TextEditingController(
       text: nominalAwal.toInt().toString(),
     );
@@ -2089,7 +2090,7 @@ class _EditTransaksiPageState extends State<EditTransaksiPage> {
       jenisLama: widget.transaksi['jenis'],
       jenisBaru: _jenisTransaksi,
       namaCatatan: _namaController.text.trim(),
-      nominal: parsedJumlah,
+      jumlah: parsedJumlah,
       kategori: _selectedKategori,
       tanggal: _selectedDate,
       deskripsi: _deskripsiController.text.trim(),

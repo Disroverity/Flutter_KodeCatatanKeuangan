@@ -40,9 +40,9 @@ class _HomePageState extends State<HomePage> {
         for (var tx in data) {
           final tgl = tx['tanggal'] as DateTime;
           _transactions.add({
-            'judul': tx['judul'],
+            'nama_catatan': tx['nama_catatan'],
             'jenis': tx['jenis'],
-            'nominal': (tx['nominal'] as double).toInt(),
+            'jumlah': (tx['jumlah'] as double).toInt(),
             'tanggal': '${tgl.day}/${tgl.month}/${tgl.year}',
             'icon': tx['jenis'] == 'Pemasukan'
                 ? Icons.account_balance_wallet_outlined
@@ -56,13 +56,13 @@ class _HomePageState extends State<HomePage> {
   int get _totalPemasukan {
     return _transactions
         .where((t) => t['jenis'] == 'Pemasukan')
-        .fold(0, (sum, t) => sum + (t['nominal'] as int));
+        .fold(0, (sum, t) => sum + (t['jumlah'] as int));
   }
 
   int get _totalPengeluaran {
     return _transactions
         .where((t) => t['jenis'] == 'Pengeluaran')
-        .fold(0, (sum, t) => sum + (t['nominal'] as int));
+        .fold(0, (sum, t) => sum + (t['jumlah'] as int));
   }
 
   int get _saldoTersedia => _totalPemasukan - _totalPengeluaran;
@@ -452,7 +452,7 @@ Widget _buildBodyContent() {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            tx['judul'] as String,
+                            tx['nama_catatan'] as String,
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
@@ -473,7 +473,7 @@ Widget _buildBodyContent() {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          '${isPemasukan ? '+' : '-'}${_formatRupiah(tx['nominal'] as int)}',
+                          '${isPemasukan ? '+' : '-'}${_formatRupiah(tx['jumlah'] as int)}',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,

@@ -32,11 +32,11 @@ class CatatanKeuangan {
     return _saldo;
   }
 
-  void updateSaldoSetelahTransaksi(String jenis, double nominal) {
+  void updateSaldoSetelahTransaksi(String jenis, double jumlah) {
     if (jenis == 'Pemasukan') {
-      _totalPemasukan += nominal;
+      _totalPemasukan += jumlah;
     } else {
-      _totalPengeluaran += nominal;
+      _totalPengeluaran += jumlah;
     }
     hitungSaldo();
   }
